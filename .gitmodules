@@ -1,0 +1,3 @@
+[submodule "gpClient"]
+	path = gpClient
+	url = https://github.com/wmde/gpClient/
