@@ -1,4 +1,4 @@
 {
-    "hostmap":  "http://sylvester.wmflabs.org/hostmap/graphs.json",
+    "hostmap":  "http://sylvester.eqiad.wmflabs/hostmap/graphs.json",
     "maxresultrows": 500
 }

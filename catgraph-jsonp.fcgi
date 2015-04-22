@@ -30,7 +30,7 @@ app= Flask(__name__)
 myhostname= socket.gethostname()
 
 
-#~ @app.route('/catgraph-jsonp/<graphname>/<querystring>')
+@app.route('/catgraph-jsonp/<graphname>/<querystring>')
 @app.route('/<graphname>/<querystring>')
 def cgstat(graphname, querystring):
     config= json.load(open("config.json"))
@@ -48,13 +48,12 @@ def cgstat(graphname, querystring):
     
     cbparams= ", ".join( 
         [
-            "Array(" + ",".join( [str(v) for v in row] ) + ")" 
+            "[" + ",".join( [str(v) for v in row] ) + "]" 
                 for row in sink.getData()[:config["maxresultrows"]]
         ] 
     )
-    js= "%s( Array( %s ) );" % (callback, cbparams)
+    js= "%s( [ %s ] );" % (callback, cbparams)
     response= flask.Response(js, mimetype="application/javascript")
-    #~ response.headers.add("Content-Encoding", "identity")
     return response
 
 
@@ -66,4 +65,3 @@ if __name__ == '__main__':
     app.use_debugger= True
     sys.stderr.write("__MAIN__\n")
     WSGIServer(app).run()
-    #~ app.run(debug=app.debug, use_debugger=app.debug)
