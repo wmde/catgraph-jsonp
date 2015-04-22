@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
-# cgstat: Web-based status app for CatGraph
+# catgraph-jsonp: JSONP interface for CatGraph
 # Copyright (C) Wikimedia Deutschland e.V.
 # Authors: Johannes Kroll
 #
