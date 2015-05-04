@@ -2,8 +2,7 @@
 This is a JSONP interface to [Catgraph](https://wikitech.wikimedia.org/wiki/Nova_Resource:Catgraph/Documentation). It is used by the [DeepCat Gadget](https://github.com/wmde/DeepCat-Gadget).
 
 <h3>Usage</h3> 
-Do a JSONP request to http://tools.wmflabs.org/catgraph-jsonp/GRAPHNAME/COMMAND?callback=YOURFUNCTION
-YOURFUNCTION is your JSONP callback. It will be called with a dict with the following fields:
+Do a JSONP request to http://tools.wmflabs.org/catgraph-jsonp/GRAPHNAME/COMMAND?callback=YOURFUNCTION where COMMAND is the graphcore command to execute on GRAPHNAME. YOURFUNCTION is your JSONP callback. It will be called with a dict with the following fields:
 * 'status' is the [graphserv response](https://github.com/wmde/graphcore/blob/master/spec.rst#responses)
 * 'statusMessage' contains the rest of the graphserv status message if present
 * 'result' contains any graphcore result rows converted to arrays
