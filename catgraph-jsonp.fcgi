@@ -36,48 +36,60 @@ myhostname= socket.gethostname()
 def category_title_to_pageid(wiki, title):
     conn= MySQLdb.connect( read_default_file=os.path.expanduser('~/replica.my.cnf'), 
         host='gptest1.eqiad.wmflabs' if wiki=='gptest1wiki' else '%s.labsdb' % wiki, 
-        cursorclass=MySQLdb.cursors.DictCursor )
+        cursorclass=MySQLdb.cursors.DictCursor,
+        use_unicode=False )
     cursor= conn.cursor()
     cursor.execute("use %s" % (wiki if wiki=='gptest1wiki' else wiki + '_p'))
-    cursor.execute("select page_id from page where page_title=%s and page_namespace=14", ( title.replace(' ', '_') ))
-    return str(cursor.fetchall()[0]['page_id'])
+    cursor.execute("select page_id from page where page_title=%s and page_namespace=14", ( title.encode('utf-8').replace(' ', '_') ))
+    res= cursor.fetchall()
+    if len(res):
+        return str(res[0]['page_id'])
+    else:
+        raise RuntimeError("Category '%s' not found in wiki '%s'" % (title, wiki))
 
 # translate 'Category:Foobar' in querystring to page_id of Foobar.
 def translate_querystring(wiki, querystring):
     def translate_token(token):
         l= token.split(':')
         if len(l)==1 or l[0]!='Category': 
-            return token
-        return category_title_to_pageid(wiki, l[1])
+            return str(token)
+        return str(category_title_to_pageid(wiki, l[1]))
     
-    return " ".join( [ translate_token(str(t)) for t in querystring.split() ] )
+    return " ".join( [ translate_token(t) for t in querystring.split() ] )
 
 @app.route('/catgraph-jsonp/<graphname>/<querystring>')
 @app.route('/<graphname>/<querystring>')
-def cgstat(graphname, querystring):
-    config= json.load(open("config.json"))
-    hostmap= requests.get(config["hostmap"]).json()
-    if not graphname in hostmap:
-        return flask.Response("Graph not found", status="404 Graph not found", mimetype="text/plain")
+def catgraph_jsonp(graphname, querystring):
     callback= flask.request.args.get("callback", "callback")
-    
-    gp= client.Connection(client.ClientTransport(hostmap[graphname]))
-    gp.connect()
-    gp.use_graph(str(graphname))
+    userparam= flask.request.args.get("userparam", None)
+    def makeResponseBody(params):
+        return "%s ( %s );" % (callback, json.dumps(params))
+    def makeJSONPResponse(params):
+        params['userparam']= userparam;
+        return flask.Response(makeResponseBody(params), mimetype="application/javascript")
 
-    sink= client.ArraySink()
-    gp.execute(translate_querystring(str(graphname).split('_')[0], str(querystring)), sink=sink)
-    
-    cbparams= ", ".join( 
-        [
-            "[" + ",".join( [str(v) for v in row] ) + "]" 
-                for row in sink.getData()[:config["maxresultrows"]]
-        ] 
-    )
-    js= "%s( [ %s ] );" % (callback, cbparams)
-    response= flask.Response(js, mimetype="application/javascript")
-    return response
+    try:
+        config= json.load(open("config.json"))
+        hostmap= requests.get(config["hostmap"]).json()
+        if not graphname in hostmap:
+            return flask.Response("Graph not found", status="404 Graph not found", mimetype="text/plain")
+        
+        gp= client.Connection(client.ClientTransport(hostmap[graphname]))
+        gp.connect()
+        gp.use_graph(str(graphname))
 
+        sink= client.ArraySink()
+        gp.execute(translate_querystring(graphname.split('_')[0], querystring), sink=sink)
+        
+        return makeJSONPResponse( { 'status': gp.getStatus(), 'statusMessage': gp.getStatusMessage(), 'result': sink.getData()[:config["maxresultrows"]] } )
+    
+    except client.gpProcessorException as ex:
+        # just pass on the graph processor error string
+        return makeJSONPResponse( { 'status': gp.getStatus(), 'statusMessage': gp.getStatusMessage() } )
+    
+    except RuntimeError as ex:
+        # pass on exception string
+        return makeJSONPResponse( { 'status': 'FAILED', 'statusMessage': u"RuntimeError: " + unicode(ex) } )
 
 if __name__ == '__main__':
     import cgitb
