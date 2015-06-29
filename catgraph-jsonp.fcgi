@@ -72,7 +72,7 @@ def catgraph_jsonp(graphname, querystring):
         config= json.load(open("config.json"))
         hostmap= requests.get(config["hostmap"]).json()
         if not graphname in hostmap:
-            return flask.Response("Graph not found", status="404 Graph not found", mimetype="text/plain")
+            return makeJSONPResponse( { 'status': 'FAILED', 'statusMessage': u"Graph not found" } )
         
         gp= client.Connection(client.ClientTransport(hostmap[graphname]))
         gp.connect()
