@@ -87,6 +87,10 @@ def catgraph_jsonp(graphname, querystring):
         # just pass on the graph processor error string
         return makeJSONPResponse( { 'status': gp.getStatus(), 'statusMessage': gp.getStatusMessage() } )
     
+    except client.gpException as ex:
+        # just pass on the graph processor error string
+        return makeJSONPResponse( { 'status': 'FAILED', 'statusMessage': 'Exception: ' + str(ex) } )
+    
     except RuntimeError as ex:
         # pass on exception string
         return makeJSONPResponse( { 'status': 'FAILED', 'statusMessage': u"RuntimeError: " + unicode(ex) } )
