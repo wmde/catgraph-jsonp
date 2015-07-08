@@ -66,8 +66,8 @@ def helppage():
         Please see <a href="//github.com/wmde/catgraph-jsonp">this page</a> for information about this tool.</body></html>""", 
         mimetype="text/html")
 
-@app.route('/catgraph-jsonp/<graphname>/<querystring>')
-@app.route('/<graphname>/<querystring>')
+@app.route('/catgraph-jsonp/<graphname>/<path:querystring>')
+@app.route('/<graphname>/<path:querystring>')
 def catgraph_jsonp(graphname, querystring):
     callback= flask.request.args.get("callback", "callback")
     userparam= flask.request.args.get("userparam", None)
@@ -103,6 +103,10 @@ def catgraph_jsonp(graphname, querystring):
     except RuntimeError as ex:
         # pass on exception string
         return makeJSONPResponse( { 'status': 'FAILED', 'statusMessage': u"RuntimeError: " + unicode(ex) } )
+
+    except requests.ConnectionError as ex:
+        # pass on exception string
+        return makeJSONPResponse( { 'status': 'FAILED', 'statusMessage': u"ConnectionError: " + unicode(ex) } )
 
 if __name__ == '__main__':
     import cgitb
