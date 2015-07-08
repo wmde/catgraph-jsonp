@@ -57,6 +57,15 @@ def translate_querystring(wiki, querystring):
     
     return " ".join( [ translate_token(t) for t in querystring.split() ] )
 
+@app.route('/catgraph-jsonp')
+@app.route('/')
+def helppage():
+    return flask.Response(
+        """<html><head><title>CatGraph JSONP Interface</title></head>
+        <body><h4>CatGraph JSONP Interface</h4>
+        Please see <a href="//github.com/wmde/catgraph-jsonp">this page</a> for information about this tool.</body></html>""", 
+        mimetype="text/html")
+
 @app.route('/catgraph-jsonp/<graphname>/<querystring>')
 @app.route('/<graphname>/<querystring>')
 def catgraph_jsonp(graphname, querystring):
