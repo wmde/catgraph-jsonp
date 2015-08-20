@@ -72,7 +72,7 @@ def mklogcursor(config):
     if hasattr(app, 'logcursor'): app.logcursor.close()
     if hasattr(app, 'logconn'): app.logconn.close()
     app.logconn= MySQLdb.connect( read_default_file=os.path.expanduser(config['reqlog_sqldefaultsfile']), 
-        host='localhost', 
+        host=config['reqlog_sqlhost'], 
         use_unicode=False )
     app.logcursor= app.logconn.cursor()
     try:
