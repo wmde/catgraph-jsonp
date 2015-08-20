@@ -19,6 +19,7 @@
 
 import os, sys
 import socket
+import time
 import requests
 import MySQLdb
 import MySQLdb.cursors
@@ -66,6 +67,57 @@ def helppage():
         Please see <a href="//github.com/wmde/catgraph-jsonp">this page</a> for information about this tool.</body></html>""", 
         mimetype="text/html")
 
+# make connection and cursor for logging. create log db and table if they don't exist.
+def mklogcursor():
+    if hasattr(app, 'logcursor'): app.logcursor.close()
+    if hasattr(app, 'logconn'): app.logconn.close()
+    config= json.load(open("config.json"))
+    app.logconn= MySQLdb.connect( read_default_file=os.path.expanduser(config['reqlog_sqldefaultsfile']), 
+        host='localhost', 
+        use_unicode=False )
+    app.logcursor= app.logconn.cursor()
+    try:
+        app.logcursor.execute("use %s" % config['reqlog_sqldb'])
+    except MySQLdb.OperationalError as ex:
+        if ex[0]==1049:
+            app.logcursor.execute("create database %s" % config['reqlog_sqldb'])
+            app.logcursor.execute("use %s" % config['reqlog_sqldb'])
+        else: 
+            raise ex
+    try:
+        app.logcursor.execute("""create table querylog (
+            timestamp varbinary(19),
+            graphname varbinary(255),
+            querystring varbinary(255),
+            resultlength int
+        )""", ())
+    except MySQLdb.OperationalError as ex:
+        if ex[0]!=1050: # table already exists
+            raise ex
+
+# prepare connection for logging
+def checklogconn():
+    try: app.logcursor
+    except AttributeError: mklogcursor()
+    try:
+        app.logconn.ping()
+    except MySQLdb.OperationalError as ex:
+        if ex[0]==2006: # mysql server has gone away
+            mklogcursor()
+        else:
+            raise    
+
+def MakeLogTimestamp(unixtime= None):
+    if unixtime==None: unixtime= time.time()
+    return time.strftime("%F %T", time.gmtime(unixtime))
+
+def querylog(graphname, querystring, resultlen):
+    checklogconn()
+    app.logcursor.execute("insert into querylog (timestamp, graphname, querystring, resultlength) values (%s, %s, %s, %s)", 
+        (MakeLogTimestamp(), graphname, querystring, resultlen))
+    app.logconn.commit()
+    
+
 @app.route('/catgraph-jsonp/<graphname>/<path:querystring>')
 @app.route('/<graphname>/<path:querystring>')
 def catgraph_jsonp(graphname, querystring):
@@ -90,7 +142,10 @@ def catgraph_jsonp(graphname, querystring):
         sink= client.ArraySink()
         gp.execute(translate_querystring(graphname.split('_')[0], querystring), sink=sink)
         
-        return makeJSONPResponse( { 'status': gp.getStatus(), 'statusMessage': gp.getStatusMessage(), 'result': sink.getData()[:config["maxresultrows"]] } )
+        result= sink.getData()
+        response= makeJSONPResponse( { 'status': gp.getStatus(), 'statusMessage': gp.getStatusMessage(), 'result': result[:config["maxresultrows"]] } )
+        querylog(graphname, querystring, len(result))
+        return response
     
     except client.gpProcessorException as ex:
         # just pass on the graph processor error string
