@@ -68,10 +68,9 @@ def helppage():
         mimetype="text/html")
 
 # make connection and cursor for logging. create log db and table if they don't exist.
-def mklogcursor():
+def mklogcursor(config):
     if hasattr(app, 'logcursor'): app.logcursor.close()
     if hasattr(app, 'logconn'): app.logconn.close()
-    config= json.load(open("config.json"))
     app.logconn= MySQLdb.connect( read_default_file=os.path.expanduser(config['reqlog_sqldefaultsfile']), 
         host='localhost', 
         use_unicode=False )
@@ -89,32 +88,46 @@ def mklogcursor():
             timestamp varbinary(19),
             graphname varbinary(255),
             querystring varbinary(255),
-            resultlength int
+            resultlength int,
+            truncated varbinary(16),
+            requestargs varbinary(255)
         )""", ())
     except MySQLdb.OperationalError as ex:
         if ex[0]!=1050: # table already exists
             raise ex
 
 # prepare connection for logging
-def checklogconn():
+def checklogconn(config):
+    if not 'reqlog_sqldb' in config: return False
     try: app.logcursor
-    except AttributeError: mklogcursor()
+    except AttributeError: mklogcursor(config)
     try:
         app.logconn.ping()
     except MySQLdb.OperationalError as ex:
         if ex[0]==2006: # mysql server has gone away
             mklogcursor()
         else:
-            raise    
+            raise
+    return True
 
 def MakeLogTimestamp(unixtime= None):
     if unixtime==None: unixtime= time.time()
     return time.strftime("%F %T", time.gmtime(unixtime))
 
-def querylog(graphname, querystring, resultlen):
-    checklogconn()
-    app.logcursor.execute("insert into querylog (timestamp, graphname, querystring, resultlength) values (%s, %s, %s, %s)", 
-        (MakeLogTimestamp(), graphname, querystring, resultlen))
+def querylog(config, graphname, querystring, resultlen, reqargs):
+    if not checklogconn(config): return
+    truncated= "unknown"
+    query= querystring.split()
+    if resultlen > config["maxresultrows"]:
+        truncated= "true"
+    elif query[0]=='traverse-successors':
+        if len(query)==4:
+            if resultlen==int(query[3]):
+                truncated= "true"
+            else:
+                truncated= "false"
+    app.logcursor.execute("insert into querylog (timestamp, graphname, querystring, resultlength, truncated, requestargs) values (%s, %s, %s, %s, %s, %s)", 
+        (MakeLogTimestamp(), graphname, querystring, resultlen, truncated, json.dumps(reqargs.to_dict())))
     app.logconn.commit()
     
 
@@ -144,7 +157,7 @@ def catgraph_jsonp(graphname, querystring):
         
         result= sink.getData()
         response= makeJSONPResponse( { 'status': gp.getStatus(), 'statusMessage': gp.getStatusMessage(), 'result': result[:config["maxresultrows"]] } )
-        querylog(graphname, querystring, len(result))
+        querylog(config, graphname, querystring, len(result), flask.request.args)
         return response
     
     except client.gpProcessorException as ex:
