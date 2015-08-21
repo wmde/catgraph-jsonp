@@ -105,7 +105,7 @@ def checklogconn(config):
         app.logconn.ping()
     except MySQLdb.OperationalError as ex:
         if ex[0]==2006: # mysql server has gone away
-            mklogcursor()
+            mklogcursor(config)
         else:
             raise
     return True
