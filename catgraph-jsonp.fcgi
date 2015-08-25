@@ -119,7 +119,7 @@ def logquery(config, graphname, querystring, resultlen, reqargs):
     query= querystring.split()
     if resultlen > config["maxresultrows"]:
         truncated= "true"
-    elif query[0]=='traverse-successors':
+    elif len(query) and query[0]=='traverse-successors':
         if len(query)==4:
             if resultlen==int(query[3]):
                 truncated= "true"
@@ -128,7 +128,14 @@ def logquery(config, graphname, querystring, resultlen, reqargs):
     app.logcursor.execute("insert into querylog (timestamp, graphname, resultlength, truncated, requestargs) values (%s, %s, %s, %s, %s)", 
         (MakeLogTimestamp(), graphname, resultlen, truncated, json.dumps(reqargs.to_dict())))
     app.logconn.commit()
-    
+
+@app.route('/catgraph-jsonp/logrequestlength')
+@app.route('/logrequestlength')
+def logrequestlength():
+    logquery(json.load(open("config.json")), None, '', None, flask.request.args)
+    params= { 'status': 'OK request logged' }
+    callback= flask.request.args.get('callback', 'callback')
+    return flask.Response("%s ( %s );" % (callback, json.dumps(params)), mimetype="application/javascript")
 
 @app.route('/catgraph-jsonp/<graphname>/<path:querystring>')
 @app.route('/<graphname>/<path:querystring>')
