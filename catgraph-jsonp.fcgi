@@ -125,7 +125,7 @@ def logquery(config, graphname, querystring, resultlen, reqargs):
                 truncated= "true"
             else:
                 truncated= "false"
-    app.logcursor.execute("insert into logquery (timestamp, graphname, resultlength, truncated, requestargs) values (%s, %s, %s, %s, %s, %s)", 
+    app.logcursor.execute("insert into querylog (timestamp, graphname, resultlength, truncated, requestargs) values (%s, %s, %s, %s, %s)", 
         (MakeLogTimestamp(), graphname, resultlen, truncated, json.dumps(reqargs.to_dict())))
     app.logconn.commit()
     
