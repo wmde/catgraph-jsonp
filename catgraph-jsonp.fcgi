@@ -87,7 +87,6 @@ def mklogcursor(config):
         app.logcursor.execute("""create table querylog (
             timestamp varbinary(19),
             graphname varbinary(255),
-            querystring varbinary(255),
             resultlength int,
             truncated varbinary(16),
             requestargs varbinary(255)
@@ -126,8 +125,8 @@ def logquery(config, graphname, querystring, resultlen, reqargs):
                 truncated= "true"
             else:
                 truncated= "false"
-    app.logcursor.execute("insert into logquery (timestamp, graphname, querystring, resultlength, truncated, requestargs) values (%s, %s, %s, %s, %s, %s)", 
-        (MakeLogTimestamp(), graphname, querystring, resultlen, truncated, json.dumps(reqargs.to_dict())))
+    app.logcursor.execute("insert into logquery (timestamp, graphname, resultlength, truncated, requestargs) values (%s, %s, %s, %s, %s, %s)", 
+        (MakeLogTimestamp(), graphname, resultlen, truncated, json.dumps(reqargs.to_dict())))
     app.logconn.commit()
     
 
