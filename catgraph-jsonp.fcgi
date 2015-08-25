@@ -114,7 +114,7 @@ def MakeLogTimestamp(unixtime= None):
     if unixtime==None: unixtime= time.time()
     return time.strftime("%F %T", time.gmtime(unixtime))
 
-def querylog(config, graphname, querystring, resultlen, reqargs):
+def logquery(config, graphname, querystring, resultlen, reqargs):
     if not checklogconn(config): return
     truncated= "unknown"
     query= querystring.split()
@@ -126,7 +126,7 @@ def querylog(config, graphname, querystring, resultlen, reqargs):
                 truncated= "true"
             else:
                 truncated= "false"
-    app.logcursor.execute("insert into querylog (timestamp, graphname, querystring, resultlength, truncated, requestargs) values (%s, %s, %s, %s, %s, %s)", 
+    app.logcursor.execute("insert into logquery (timestamp, graphname, querystring, resultlength, truncated, requestargs) values (%s, %s, %s, %s, %s, %s)", 
         (MakeLogTimestamp(), graphname, querystring, resultlen, truncated, json.dumps(reqargs.to_dict())))
     app.logconn.commit()
     
@@ -157,7 +157,7 @@ def catgraph_jsonp(graphname, querystring):
         
         result= sink.getData()
         response= makeJSONPResponse( { 'status': gp.getStatus(), 'statusMessage': gp.getStatusMessage(), 'result': result[:config["maxresultrows"]] } )
-        querylog(config, graphname, querystring, len(result), flask.request.args)
+        logquery(config, graphname, querystring, len(result), flask.request.args)
         return response
     
     except client.gpProcessorException as ex:
