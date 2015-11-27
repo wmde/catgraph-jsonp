@@ -57,6 +57,7 @@ def makecsv(datestr):
         
         hits= dict()
 
+        # fill hits list with zero entries for each day of the month
         d= time.mktime( time.strptime(datestr, "%Y-%m") )
         while datetime.date.fromtimestamp(d).strftime('%Y-%m')==datestr:
             hits[datetime.date.fromtimestamp(d).strftime('%Y-%m-%d')]= { key: 0 for key in graphnames }
