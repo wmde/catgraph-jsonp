@@ -6,7 +6,7 @@ import time
 import datetime
 #~ import smtplib
 import mimetypes
-from optparse import OptionParser
+import argparse
 from email import encoders
 from email.message import Message
 from email.mime.multipart import MIMEMultipart
@@ -80,26 +80,16 @@ def makecsv(datestr):
     return open(filename).read()
 
 if __name__=='__main__':
-    #~ parser = OptionParser(usage="""\
-#~ XXX TODO FILLIN""")
-    #~ parser.add_option('-d', '--directory',
-                      #~ type='string', action='store',
-                      #~ help="""Mail the contents of the specified directory,
-                      #~ otherwise use the current directory.  Only the regular
-                      #~ files in the directory are sent, and we don't recurse to
-                      #~ subdirectories.""")
-    #~ parser.add_option('-o', '--output',
-                      #~ type='string', action='store', metavar='FILE',
-                      #~ help="""Print the composed message to FILE instead of
-                      #~ sending the message to the SMTP server.""")
-    #~ parser.add_option('-s', '--sender',
-                      #~ type='string', action='store', metavar='SENDER',
-                      #~ help='The value of the From: header (required)')
-    #~ parser.add_option('-r', '--recipient',
-                      #~ type='string', action='append', metavar='RECIPIENT',
-                      #~ default=[], dest='recipients',
-                      #~ help='A To: header value (at least one required)')
-    #~ opts, args= parser.parse_args()
+    parser= argparse.ArgumentParser(description="""\
+Usage report script for catgraph-jsonp""")
+    parser.add_argument('-m', '--month',
+                      metavar='MONTH',
+                      help='month, in %%Y-%%m format')
+
+    args= parser.parse_args()
     
-    last_month= datetime.date.fromtimestamp(time.time() - 1*60*60*24).strftime('%Y-%m')
-    print_report('catgraph-jsonp@tools.wmflabs.org', ['johannes.kroll@wikimedia.de'], last_month, makecsv(last_month))
+    if args.month:
+        month= args.month
+    else:
+        month= datetime.date.fromtimestamp(time.time() - 1*60*60*24).strftime('%Y-%m')
+    print_report('catgraph-jsonp@tools.wmflabs.org', ['johannes.kroll@wikimedia.de'], month, makecsv(month))
