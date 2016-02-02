@@ -41,12 +41,13 @@ def category_title_to_pageid(wiki, title):
         use_unicode=False )
     cursor= conn.cursor()
     cursor.execute("use %s" % (wiki if wiki=='gptest1wiki' else wiki + '_p'))
-    cursor.execute("select page_id from page where page_title=%s and page_namespace=14", ( title.encode('utf-8').replace(' ', '_') ))
-    res= cursor.fetchall()
-    if len(res):
-        return str(res[0]['page_id'])
-    else:
-        raise RuntimeError("Category '%s' not found in wiki '%s'" % (title, wiki))
+    title_underscores= title.encode('utf-8').replace(' ', '_')
+    for t in [ [title_underscores.capitalize(), "page_title"], [title_underscores, "page_title"], [title_underscores.lower(), "lower(page_title)"] ]:
+        cursor.execute( "select page_id from page where " + t[1] + "=%s and page_namespace=14", (t[0]) )
+        res= cursor.fetchall()
+        if len(res):
+            return str(res[0]['page_id'])
+    raise RuntimeError("Category '%s' not found in wiki '%s'" % (title, wiki))
 
 # translate 'Category:Foobar' in querystring to page_id of Foobar.
 def translate_querystring(wiki, querystring):
@@ -188,5 +189,4 @@ if __name__ == '__main__':
     app.config['DEBUG']= True
     app.debug= True
     app.use_debugger= True
-    sys.stderr.write("__MAIN__\n")
     WSGIServer(app).run()
