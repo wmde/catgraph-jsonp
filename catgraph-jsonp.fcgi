@@ -55,7 +55,8 @@ def translate_querystring(wiki, querystring):
         l= token.split(':')
         if len(l)==1 or l[0]!='Category': 
             return str(token)
-        return str(category_title_to_pageid(wiki, l[1]))
+        category_title= token[ (token.find(':')+1) : ]
+        return str(category_title_to_pageid(wiki, category_title))
     
     return " ".join( [ translate_token(t) for t in querystring.split() ] )
 
