@@ -42,7 +42,7 @@ def category_title_to_pageid(wiki, title):
     cursor= conn.cursor()
     cursor.execute("use %s" % (wiki if wiki=='gptest1wiki' else wiki + '_p'))
     title_underscores= title.encode('utf-8').replace(' ', '_')
-    for t in [ [title_underscores.capitalize(), "page_title"], [title_underscores, "page_title"], [title_underscores.lower(), "lower(page_title)"] ]:
+    for t in [ [title_underscores, "page_title"], [title_underscores.capitalize(), "page_title"], [title_underscores.lower(), "lower(page_title)"] ]:
         cursor.execute( "select page_id from page where " + t[1] + "=%s and page_namespace=14", (t[0]) )
         res= cursor.fetchall()
         if len(res):
